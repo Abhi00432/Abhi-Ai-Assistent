@@ -1,632 +1,258 @@
 import streamlit as st
-import psycopg2
-from psycopg2 import pool
-import hashlib
 import requests
 import json
-import base64
-import urllib.parse
-from io import BytesIO
-from PIL import Image
+import uuid
 
-# ----------------------------------------------------
-# 1. Page Configuration
-# ----------------------------------------------------
+# --- Page Setup ---
 st.set_page_config(
-    page_title="AI Assistant",
+    page_title="AI Workspace Hub",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ----------------------------------------------------
-# 2. Eye-Pleasing 4-Corner Cool RGB Engine (No Sharp Green/Orange)
-# ----------------------------------------------------
+# --- Samsung OneUI + Dynamic High-Contrast Chat Colors ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
-    * {
-        box-sizing: border-box !important;
-    }
-
-    html, body, [data-testid="stAppViewContainer"], .main {
-        font-family: 'Plus Jakarta Sans', sans-serif !important;
-        color: #f8fafc !important;
-    }
-
-    /* Soft Cool-Tone 4-Corner Glow (Ice Cyan, Royal Blue, Velvet Purple, Deep Indigo) */
+    /* Dark Background */
     .stApp {
-        background-color: #020617 !important;
-    }
-
-    [data-testid="stAppViewContainer"] {
-        background-color: #020617 !important;
-        background-image: 
-            radial-gradient(at 0% 0%, rgba(0, 240, 255, 0.35) 0px, transparent 55%),
-            radial-gradient(at 100% 0%, rgba(121, 40, 202, 0.38) 0px, transparent 55%),
-            radial-gradient(at 100% 100%, rgba(0, 112, 243, 0.35) 0px, transparent 55%),
-            radial-gradient(at 0% 100%, rgba(88, 28, 135, 0.40) 0px, transparent 55%) !important;
-        animation: softCoolCornerShift 10s ease-in-out infinite alternate !important;
-    }
-
-    @keyframes softCoolCornerShift {
-        0% {
-            filter: hue-rotate(0deg) brightness(1);
-        }
-        50% {
-            filter: hue-rotate(45deg) brightness(1.08);
-        }
-        100% {
-            filter: hue-rotate(-30deg) brightness(1);
-        }
-    }
-
-    /* Top Streamlit Header */
-    [data-testid="stHeader"] {
-        background: rgba(2, 6, 23, 0.65) !important;
-        backdrop-filter: blur(12px) !important;
-    }
-
-    /* Sidebar Navigation */
-    [data-testid="stSidebar"] {
-        background-color: #04091a !important;
-        border-right: 1px solid rgba(0, 240, 255, 0.2) !important;
-    }
-
-    /* Chat Messages */
-    .stChatMessageContainer {
-        padding: 0 !important;
-        margin-bottom: 8px !important;
-    }
-
-    [data-testid="stChatMessage"] {
-        background: rgba(8, 15, 34, 0.95) !important;
-        border: 1px solid rgba(0, 240, 255, 0.22) !important;
-        border-radius: 14px !important;
-        padding: 10px 16px !important;
-        max-width: 86% !important;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
-    }
-
-    code, pre, [data-testid="stCodeBlock"] {
-        font-family: 'JetBrains Mono', monospace !important;
-        background: #010409 !important;
-        border: 1px solid rgba(0, 240, 255, 0.2) !important;
-        border-radius: 8px !important;
-        white-space: pre-wrap !important;
-        word-break: break-all !important;
-    }
-
-    .laser-typing-cursor {
-        display: inline-block;
-        width: 3px;
-        height: 14px;
-        background: #00f0ff;
-        margin-left: 4px;
-        vertical-align: middle;
-        animation: blinkCursor 0.6s infinite alternate;
-    }
-
-    @keyframes blinkCursor {
-        0% { opacity: 0.15; }
-        100% { opacity: 1; }
-    }
-
-    /* Workspace Bar */
-    .top-header {
-        background: rgba(8, 15, 34, 0.9);
-        border: 1px solid rgba(0, 240, 255, 0.25);
-        border-radius: 12px;
-        padding: 10px 16px;
-        margin-bottom: 14px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .pulse-dot {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        background: #00f0ff;
-        border-radius: 50%;
-        box-shadow: 0 0 8px #00f0ff;
-        margin-right: 8px;
-    }
-
-    .stButton>button {
-        background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%) !important;
+        background: radial-gradient(circle at 15% 15%, #0d1117 0%, #07090e 100%);
         color: #ffffff !important;
-        font-weight: 700 !important;
-        border: none !important;
-        border-radius: 9px !important;
-        padding: 8px 16px !important;
+        font-family: 'Segoe UI', -apple-system, Roboto, sans-serif;
     }
 
-    /* Centered Login Card */
-    .clean-auth-card {
-        max-width: 410px;
-        margin: 30px auto 16px auto;
-        padding: 24px;
-        background: rgba(8, 15, 34, 0.95);
-        border: 1.5px solid rgba(0, 240, 255, 0.25);
-        border-radius: 16px;
-        text-align: center;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+    /* Animated RGB Gradient Title */
+    @keyframes rgbGlow {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    .rgb-header {
+        background: linear-gradient(90deg, #ff007f, #7928ca, #0070f3, #00dfd8, #ff007f);
+        background-size: 300% 300%;
+        animation: rgbGlow 6s ease infinite;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 2.4rem;
+        font-weight: 800;
+        margin-bottom: 20px;
+    }
+
+    /* Glassmorphism Sidebar */
+    [data-testid="stSidebar"] {
+        background: rgba(15, 20, 32, 0.85) !important;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Base Chat Message Box */
+    [data-testid="stChatMessage"] {
+        border-radius: 18px !important;
+        padding: 16px 20px !important;
+        margin-bottom: 14px !important;
+        backdrop-filter: blur(12px);
+    }
+
+    /* User Prompt Bubble: Neon Cyan/Blue Border with Bright White/Cyan Text */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
+        background: linear-gradient(135deg, rgba(0, 112, 243, 0.2), rgba(121, 40, 202, 0.25)) !important;
+        border: 1px solid rgba(0, 223, 216, 0.6) !important;
+        box-shadow: 0 0 16px rgba(0, 223, 216, 0.25) !important;
+    }
+
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) p,
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) span,
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) div {
+        color: #e0f2fe !important; /* Bright Cyan-White Text */
+        font-size: 1.05rem !important;
+        font-weight: 500 !important;
+    }
+
+    /* AI Response Bubble: Neon Pink/Purple Border with Bright Crisp White Text */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
+        background: linear-gradient(135deg, rgba(121, 40, 202, 0.25), rgba(255, 0, 127, 0.2)) !important;
+        border: 1px solid rgba(255, 0, 127, 0.5) !important;
+        box-shadow: 0 0 18px rgba(121, 40, 202, 0.3) !important;
+    }
+
+    /* AI Text High-Contrast Fix: Sabhi elements ko pure white/bright enforce karein */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) p,
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) span,
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) div,
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) li {
+        color: #ffffff !important; /* Pure Crisp White */
+        font-size: 1.02rem !important;
+        line-height: 1.65 !important;
+    }
+
+    /* Code blocks inside AI responses */
+    [data-testid="stChatMessage"] pre, [data-testid="stChatMessage"] code {
+        background-color: #111827 !important;
+        color: #38bdf8 !important; /* Bright Sky Blue */
+        border-radius: 8px !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Fix Bottom Bar Background */
+    [data-testid="stBottom"], [data-testid="stBottom"] > div {
+        background: transparent !important;
+    }
+
+    /* Chat Input Container Styling */
+    [data-testid="stChatInput"] {
+        background: #111827 !important;
+        border: 1.5px solid rgba(0, 223, 216, 0.5) !important;
+        border-radius: 20px !important;
+        box-shadow: 0 0 20px rgba(0, 112, 243, 0.25) !important;
+    }
+
+    [data-testid="stChatInput"]:focus-within {
+        border: 1.5px solid rgba(255, 0, 127, 0.7) !important;
+        box-shadow: 0 0 25px rgba(121, 40, 202, 0.4) !important;
+    }
+
+    /* Input Typing Box Text: Ab typing ke waqt crystal clear white dikhega */
+    [data-testid="stChatInput"] textarea {
+        background: transparent !important;
+        color: #ffffff !important; /* Crystal White Typed Text */
+        -webkit-text-fill-color: #ffffff !important;
+        font-size: 1rem !important;
+    }
+
+    [data-testid="stChatInput"] textarea::placeholder {
+        color: #94a3b8 !important; /* Visible Grey Placeholder */
+        -webkit-text-fill-color: #94a3b8 !important;
+    }
+
+    /* Custom Gradient Buttons */
+    .stButton > button {
+        border-radius: 12px !important;
+        background: linear-gradient(135deg, #0070f3, #7928ca) !important;
+        color: #ffffff !important;
+        border: none !important;
+        font-weight: 600 !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    }
+
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(121, 40, 202, 0.4) !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------------------------------
-# 3. Supabase Cloud Database Layer
-# ----------------------------------------------------
-@st.cache_resource
-def get_db_pool():
-    if "DB_URL" in st.secrets:
-        db_url = st.secrets["DB_URL"].strip()
-    elif "database" in st.secrets and "url" in st.secrets["database"]:
-        db_url = st.secrets["database"]["url"].strip()
-    else:
-        db_url = "postgresql://postgres.jyrhiirspxylvlbkkowf:AbhiJangir%4006@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres".strip()
-    return pool.SimpleConnectionPool(1, 4, db_url)
+# --- Multiple Chat State Management ---
+if "chats" not in st.session_state:
+    first_id = str(uuid.uuid4())
+    st.session_state.chats = {first_id: {"name": "New Chat", "messages": []}}
+    st.session_state.active_chat_id = first_id
 
-def get_db_conn():
-    return get_db_pool().getconn()
+if "active_chat_id" not in st.session_state:
+    st.session_state.active_chat_id = list(st.session_state.chats.keys())[0]
 
-def release_db_conn(conn):
-    if conn:
-        get_db_pool().putconn(conn)
-
-def hash_pass(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
-
-def check_user_exists(email: str) -> bool:
-    conn = None
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor()
-        cur.execute("SELECT email FROM users WHERE LOWER(email) = LOWER(%s);", (email.strip(),))
-        user = cur.fetchone()
-        cur.close()
-        return user is not None
-    except Exception:
-        return False
-    finally:
-        release_db_conn(conn)
-
-def register_user(email: str, password: str) -> bool:
-    clean_email = email.lower().strip()
-    if check_user_exists(clean_email):
-        return False
-    conn = None
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO users (email, password_hash) VALUES (%s, %s);",
-            (clean_email, hash_pass(password))
-        )
-        conn.commit()
-        cur.close()
-        return True
-    except Exception:
-        return False
-    finally:
-        release_db_conn(conn)
-
-def authenticate_user(email: str, password: str) -> bool:
-    conn = None
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor()
-        cur.execute("SELECT password_hash FROM users WHERE LOWER(email) = LOWER(%s);", (email.lower().strip(),))
-        res = cur.fetchone()
-        cur.close()
-        if res and res[0] == hash_pass(password):
-            return True
-        return False
-    except Exception:
-        return False
-    finally:
-        release_db_conn(conn)
-
-def create_new_session(email: str, title: str = "New Chat") -> int:
-    conn = None
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO chat_sessions (user_email, session_title) VALUES (%s, %s) RETURNING id;",
-            (email.lower().strip(), title)
-        )
-        sess_id = cur.fetchone()[0]
-        conn.commit()
-        cur.close()
-        return sess_id
-    finally:
-        release_db_conn(conn)
-
-def get_user_sessions(email: str):
-    conn = None
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT id, session_title FROM chat_sessions WHERE LOWER(user_email) = LOWER(%s) ORDER BY id DESC;",
-            (email.strip(),)
-        )
-        rows = cur.fetchall()
-        cur.close()
-        return rows
-    except Exception:
-        return []
-    finally:
-        release_db_conn(conn)
-
-def rename_session(session_id: int, new_title: str):
-    conn = None
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor()
-        cur.execute("UPDATE chat_sessions SET session_title = %s WHERE id = %s;", (new_title, session_id))
-        conn.commit()
-        cur.close()
-    finally:
-        release_db_conn(conn)
-
-def delete_session(session_id: int):
-    conn = None
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor()
-        cur.execute("DELETE FROM chat_messages WHERE session_id = %s;", (session_id,))
-        cur.execute("DELETE FROM chat_sessions WHERE id = %s;", (session_id,))
-        conn.commit()
-        cur.close()
-    finally:
-        release_db_conn(conn)
-
-def save_message_to_db(session_id: int, role: str, content: str, is_image: int = 0):
-    conn = None
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO chat_messages (session_id, role, content, is_image) VALUES (%s, %s, %s, %s);",
-            (session_id, role, content, is_image)
-        )
-        conn.commit()
-        cur.close()
-    finally:
-        release_db_conn(conn)
-
-def load_session_messages(session_id: int):
-    conn = None
-    try:
-        conn = get_db_conn()
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT role, content, is_image FROM chat_messages WHERE session_id = %s ORDER BY id ASC;",
-            (session_id,)
-        )
-        rows = cur.fetchall()
-        cur.close()
-        return [{"role": r[0], "content": r[1], "is_generated_image": bool(r[2])} for r in rows]
-    except Exception:
-        return []
-    finally:
-        release_db_conn(conn)
-
-# ----------------------------------------------------
-# 4. Backend Tunnel Endpoint
-# ----------------------------------------------------
-OLLAMA_BASE_URL = "https://assure-texas-sierra-knight.trycloudflare.com".strip()
-
-# ----------------------------------------------------
-# 5. Persistent Authentication Controller (Auto-Login)
-# ----------------------------------------------------
-saved_user = st.query_params.get("user", None)
-
-if "authenticated_user" not in st.session_state:
-    if saved_user and check_user_exists(saved_user):
-        st.session_state.authenticated_user = saved_user
-    else:
-        st.session_state.authenticated_user = None
-
-if "current_session_id" not in st.session_state:
-    st.session_state.current_session_id = None
-
-# ----------------------------------------------------
-# 6. Authentication Screen
-# ----------------------------------------------------
-if not st.session_state.authenticated_user:
-    col_l, col_center, col_r = st.columns([1, 2, 1])
-    with col_center:
-        st.markdown("""
-        <div class='clean-auth-card'>
-            <div class='pulse-dot'></div>
-            <h3 style='margin: 6px 0 2px 0; font-weight: 700; color: #f8fafc;'>AI Assistant</h3>
-            <p style='color: #94a3b8; font-size: 0.85rem;'>Sign in to your workspace</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        auth_tab1, auth_tab2 = st.tabs(["Sign In", "Create Account"])
-        
-        with auth_tab1:
-            email_login = st.text_input("Gmail Address", key="login_email", placeholder="name@gmail.com")
-            pass_login = st.text_input("Password", type="password", key="login_pass", placeholder="Enter password")
-            if st.button("SIGN IN", key="btn_signin", use_container_width=True):
-                clean_email = email_login.lower().strip()
-                if not clean_email.endswith("@gmail.com"):
-                    st.error("Valid @gmail.com address required.")
-                elif not check_user_exists(clean_email):
-                    st.error("Account not found. Please create an account first.")
-                elif authenticate_user(clean_email, pass_login):
-                    st.session_state.authenticated_user = clean_email
-                    st.query_params["user"] = clean_email
-                    st.rerun()
-                else:
-                    st.error("Invalid credentials.")
-
-        with auth_tab2:
-            email_reg = st.text_input("Gmail Address", key="reg_email", placeholder="name@gmail.com")
-            pass_reg = st.text_input("Password", type="password", key="reg_pass", placeholder="At least 6 characters")
-            if st.button("CREATE ACCOUNT", key="btn_signup", use_container_width=True):
-                clean_email = email_reg.lower().strip()
-                if not clean_email.endswith("@gmail.com"):
-                    st.error("Only @gmail.com addresses are permitted.")
-                elif len(pass_reg) < 6:
-                    st.error("Password must be at least 6 characters long.")
-                elif check_user_exists(clean_email):
-                    st.error("This Gmail is already registered.")
-                else:
-                    if register_user(clean_email, pass_reg):
-                        st.success("Account created successfully! Please Sign In.")
-                    else:
-                        st.error("Registration failed. Please try again.")
-
-    st.stop()
-
-# ----------------------------------------------------
-# 7. Workspace Setup
-# ----------------------------------------------------
-user_email = st.session_state.authenticated_user
-
-user_sessions = get_user_sessions(user_email)
-if not user_sessions:
-    new_id = create_new_session(user_email, "General Chat")
-    st.session_state.current_session_id = new_id
-    user_sessions = get_user_sessions(user_email)
-elif st.session_state.current_session_id is None:
-    st.session_state.current_session_id = user_sessions[0][0]
-
-# ----------------------------------------------------
-# 8. Sidebar Controls
-# ----------------------------------------------------
+# --- Sidebar Controls ---
 with st.sidebar:
-    st.markdown("### 💬 Chats")
+    st.markdown('<div class="rgb-header" style="font-size: 1.6rem; margin-bottom: 10px;">⚡ Chats</div>', unsafe_allow_html=True)
     
+    # New Chat Button
     if st.button("➕ New Chat", use_container_width=True):
-        new_sess_id = create_new_session(user_email, "New Chat")
-        st.session_state.current_session_id = new_sess_id
+        new_id = str(uuid.uuid4())
+        chat_count = len(st.session_state.chats) + 1
+        st.session_state.chats[new_id] = {"name": f"Chat {chat_count}", "messages": []}
+        st.session_state.active_chat_id = new_id
         st.rerun()
 
-    st.markdown("---")
-    
-    active_title = "Chat"
-    for s_id, s_title in user_sessions:
-        if s_id == st.session_state.current_session_id:
-            active_title = s_title
-            break
-            
-    with st.expander("✏️ Rename Chat"):
-        new_title_input = st.text_input("Title", value=active_title)
-        if st.button("Save", use_container_width=True):
-            if new_title_input.strip():
-                rename_session(st.session_state.current_session_id, new_title_input.strip())
-                st.rerun()
+    st.markdown("<hr style='border: 0.5px solid rgba(255,255,255,0.1); margin: 15px 0;'>", unsafe_allow_html=True)
 
-    st.markdown("#### Saved Chats")
-    
-    for s_id, s_title in user_sessions:
-        col_select, col_del = st.columns([8, 2])
-        with col_select:
-            is_active = (s_id == st.session_state.current_session_id)
-            label = f"👉 {s_title}" if is_active else s_title
-            if st.button(label, key=f"session_{s_id}", use_container_width=True):
-                st.session_state.current_session_id = s_id
-                st.rerun()
-        with col_del:
-            if st.button("🗑️", key=f"delete_{s_id}"):
-                delete_session(s_id)
-                st.session_state.current_session_id = None
-                st.rerun()
+    # Chat Sessions List
+    chat_ids = list(st.session_state.chats.keys())
+    chat_names = [st.session_state.chats[cid]["name"] for cid in chat_ids]
+    current_index = chat_ids.index(st.session_state.active_chat_id)
 
-    st.markdown("---")
-    if st.button("Logout", use_container_width=True):
-        st.session_state.authenticated_user = None
-        st.session_state.current_session_id = None
-        if "user" in st.query_params:
-            del st.query_params["user"]
+    selected_name = st.radio(
+        "Recent Conversations",
+        chat_names,
+        index=current_index,
+        label_visibility="collapsed"
+    )
+    
+    selected_id = chat_ids[chat_names.index(selected_name)]
+    if selected_id != st.session_state.active_chat_id:
+        st.session_state.active_chat_id = selected_id
         st.rerun()
 
-# ----------------------------------------------------
-# 9. Main Stream
-# ----------------------------------------------------
-st.markdown(f"""
-<div class="top-header">
-    <div style="display: flex; align-items: center;">
-        <span class="pulse-dot"></span>
-        <span style="font-size: 1.05rem; font-weight: 700;">{active_title}</span>
-    </div>
-    <div style="font-size: 0.8rem; color: #94a3b8;">
-        User: <code style="color: #00f0ff;">{user_email}</code>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    st.markdown("<hr style='border: 0.5px solid rgba(255,255,255,0.1); margin: 15px 0;'>", unsafe_allow_html=True)
 
-current_messages = load_session_messages(st.session_state.current_session_id)
+    # Rename Current Chat Section
+    current_chat = st.session_state.chats[st.session_state.active_chat_id]
+    new_chat_name = st.text_input("✏️ Rename Chat", value=current_chat["name"])
+    if new_chat_name and new_chat_name != current_chat["name"]:
+        current_chat["name"] = new_chat_name
+        st.rerun()
 
-for msg in current_messages:
-    avatar_icon = "🤖" if msg["role"] == "assistant" else "👤"
-    with st.chat_message(msg["role"], avatar=avatar_icon):
-        if msg.get("is_generated_image"):
-            st.image(msg["content"], caption="Generated Image", use_container_width=True)
-        else:
-            st.markdown(msg["content"])
+    # Clear Current Chat
+    if st.button("🧹 Clear Messages", use_container_width=True):
+        current_chat["messages"] = []
+        st.rerun()
 
-# Helpers
-def encode_img_to_base64(file_obj):
-    img = Image.open(file_obj)
-    img.thumbnail((512, 512))
-    buf = BytesIO()
-    img.convert("RGB").save(buf, format="JPEG", quality=70)
-    return base64.b64encode(buf.getvalue()).decode("utf-8")
+# --- Main Workspace Header ---
+active_chat = st.session_state.chats[st.session_state.active_chat_id]
+st.markdown(f'<h1 class="rgb-header">{active_chat["name"]}</h1>', unsafe_allow_html=True)
 
-def is_image_request(prompt: str) -> bool:
-    triggers = ["photo banao", "image banao", "tasveer banao", "draw", "generate image", "create image", "picture of", "render image"]
-    return any(k in prompt.lower() for k in triggers)
+# Render Chat History
+for msg in active_chat["messages"]:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
-# ----------------------------------------------------
-# 10. Integrated Chat Input with Native Attachment (+)
-# ----------------------------------------------------
-user_input = st.chat_input(
-    "Ask a question, paste code/math, or attach an image...",
-    accept_file="multiple",
-    file_type=["png", "jpg", "jpeg"]
-)
+# --- User Input & Backend Execution ---
+if prompt := st.chat_input("Ask code, queries, or ideas..."):
+    active_chat["messages"].append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-# ----------------------------------------------------
-# 11. Ultra Low-Latency STEM Engine
-# ----------------------------------------------------
-if user_input:
-    user_query = user_input.text if hasattr(user_input, "text") else str(user_input)
-    attached_files = getattr(user_input, "files", [])
+    with st.chat_message("assistant"):
+        response_box = st.empty()
+        full_text = ""
 
-    if not user_query and not attached_files:
-        st.stop()
-
-    if not user_query and attached_files:
-        user_query = "Read this image carefully and solve step by step."
-
-    if active_title in ["New Chat", "General Chat"] and len(current_messages) == 0:
-        short_name = user_query[:24] + "..." if len(user_query) > 24 else user_query
-        rename_session(st.session_state.current_session_id, short_name)
-
-    base64_img = None
-    if attached_files and len(attached_files) > 0:
-        base64_img = encode_img_to_base64(attached_files[0])
-
-    save_message_to_db(st.session_state.current_session_id, "user", user_query, 0)
-    with st.chat_message("user", avatar="👤"):
-        if attached_files and len(attached_files) > 0:
-            st.image(attached_files[0], width=300)
-        st.markdown(user_query)
-
-    with st.chat_message("assistant", avatar="🤖"):
-        
-        # 1. Image Generation
-        if is_image_request(user_query):
-            with st.spinner("Generating image..."):
-                encoded_prompt = urllib.parse.quote(user_query)
-                image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true"
-                st.image(image_url, caption=f"Prompt: {user_query}", use_container_width=True)
-                save_message_to_db(st.session_state.current_session_id, "assistant", image_url, 1)
-
-        # 2. Vision OCR & Math Solver
-        elif base64_img:
-            with st.spinner("Analyzing image..."):
-                vision_instruction = (
-                    "You are an expert mathematician. "
-                    "Transcribe all formulas into standard LaTeX ($$ for blocks, $ for inline) and solve directly step-by-step."
-                )
-                
-                payload = {
-                    "model": "minicpm-v",
-                    "messages": [
-                        {"role": "system", "content": vision_instruction},
-                        {
-                            "role": "user",
-                            "content": f"{user_query}\n\nSolve step-by-step.",
-                            "images": [base64_img]
-                        }
-                    ],
-                    "options": {
-                        "num_thread": 4,
-                        "num_ctx": 512,
-                        "temperature": 0.1,
-                        "repeat_penalty": 1.15
-                    },
-                    "stream": True
-                }
-                try:
-                    response = requests.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload, stream=True, timeout=120)
-                    if response.status_code == 200:
-                        placeholder = st.empty()
-                        aggregated_text = ""
-                        for line in response.iter_lines():
-                            if line:
-                                data = json.loads(line.decode("utf-8"))
-                                chunk = data.get("message", {}).get("content", "")
-                                aggregated_text += chunk
-                                placeholder.markdown(aggregated_text + "<span class='laser-typing-cursor'></span>", unsafe_allow_html=True)
-                        placeholder.markdown(aggregated_text)
-                        save_message_to_db(st.session_state.current_session_id, "assistant", aggregated_text, 0)
-                    else:
-                        st.error(f"Vision Server Alert: Status {response.status_code}")
-                except Exception as ex:
-                    st.error(f"Connection failure: {str(ex)}")
-
-        # 3. High-Speed Direct Math Solver
-# 3. All-Rounder Logic, Reasoning & Conversation Engine
-        else:
-            system_prompt = {
-                "role": "system",
-                "content": (
-                    "You are an intelligent, versatile, and articulate AI assistant. "
-                    "You excel at logical reasoning, deep conversation, coding, and advanced mathematics. "
-                    "Adapt your tone naturally to the user: be conversational and empathetic for general discussions, "
-                    "and rigorous, accurate, and step-by-step for technical or mathematical queries. "
-                    "When rendering math, always use standard LaTeX with $$...$$ for standalone display blocks and $...$ for inline expressions."
-                )
+        payload = {
+            "model": "qwen2.5-coder:1.5b",
+            "messages": active_chat["messages"],
+            "stream": True,
+            "options": {
+                "num_gpu": 99,
+                "num_ctx": 1536,
+                "low_vram": True,
+                "num_thread": 4
             }
+        }
 
-            clean_messages = [
-                {"role": m["role"], "content": m["content"]}
-                for m in current_messages[-4:]
-                if not m.get("is_generated_image")
-            ]
+        try:
+            response = requests.post(
+                "http://localhost:11434/api/chat",
+                json=payload,
+                stream=True,
+                timeout=90
+            )
 
-            payload = {
-                "model": "qwen2.5:3b",      # CPU-फ्रेंडली सुपरफास्ट ऑलराउंडर
-                "messages": [system_prompt] + clean_messages + [{"role": "user", "content": user_query}],
-                "keep_alive": "24h",
-                "options": {
-                    "num_thread": 6,         # अपने लैपटॉप के 4 थ्रेड्स
-                    "num_ctx": 3070,         # 4096 से घटाकर 2048 किया ताकि RAM न भरे
-                    "num_predict": 912,      # 10-20 लाइन के कोड और जवाब के लिए बेस्ट
-                    "temperature": 0.4,
-                    "top_p": 0.9
-                },
-                "stream": True
-            }
-            
+            if response.status_code == 200:
+                for line in response.iter_lines():
+                    if line:
+                        chunk_json = json.loads(line.decode("utf-8"))
+                        text_chunk = chunk_json.get("message", {}).get("content", "")
+                        full_text += text_chunk
+                        response_box.markdown(full_text + "▌")
+                        if chunk_json.get("done", False):
+                            break
+                response_box.markdown(full_text)
+            else:
+                st.error(f"Ollama API Error: HTTP {response.status_code}")
 
-            try:
-                response = requests.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload, stream=True, timeout=90)
-                if response.status_code == 200:
-                    placeholder = st.empty()
-                    aggregated_text = ""
-                    for line in response.iter_lines():
-                        if line:
-                            data = json.loads(line.decode("utf-8"))
-                            chunk = data.get("message", {}).get("content", "")
-                            aggregated_text += chunk
-                            placeholder.markdown(aggregated_text + "<span class='laser-typing-cursor'></span>", unsafe_allow_html=True)
-                    placeholder.markdown(aggregated_text)
-                    save_message_to_db(st.session_state.current_session_id, "assistant", aggregated_text, 0)
-                else:
-                    st.error(f"Server Alert: Status {response.status_code}")
-            except Exception as ex:
-                st.error(f"Stream error: {str(ex)}")
+        except requests.exceptions.ConnectionError:
+            st.error("⚠️ Ollama Server Offline. Start server using: ollama serve")
+        except Exception as e:
+            st.error(f"⚠️ Runtime Error: {str(e)}")
+
+    if full_text:
+        active_chat["messages"].append({"role": "assistant", "content": full_text})
