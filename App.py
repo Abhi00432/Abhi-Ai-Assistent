@@ -230,7 +230,7 @@ if prompt := st.chat_input("Ask code, queries, or ideas..."):
 
         try:
             response = requests.post(
-                url = "https://extremely-schedules-house-tournament.trycloudflare.com",
+                url = "https://extremely-schedules-house-tournament.trycloudflare.com/api/chat",
                 json=payload,
                 stream=True,
                 timeout=90
