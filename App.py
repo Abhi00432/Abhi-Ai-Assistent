@@ -230,7 +230,7 @@ if prompt := st.chat_input("Ask code, queries, or ideas..."):
 
         try:
             response = requests.post(
-                "http://localhost:11434/api/chat",
+                " https://dynamic-warranty-exhibitions-advocacy.trycloudflare.com ",
                 json=payload,
                 stream=True,
                 timeout=90
