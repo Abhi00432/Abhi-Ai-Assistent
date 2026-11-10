@@ -168,7 +168,13 @@ if user_prompt := st.chat_input("Ask code, queries, or ideas..."):
 
         payload = {
             "messages": formatted_messages,
-            "temperature": 0.7,
+            "temperature": 0.6,
+            "top_p": 0.85,
+            "max_tokens": 1024,
+            "presence_penalty": 0.2,
+            "frequency_penalty": 0.3,
+            "repeat_penalty": 1.15,
+            "stop": ["<|im_end|>", "<|endoftext|>", "<|im_start|>"],
             "stream": True
         }
 
