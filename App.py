@@ -162,22 +162,13 @@ if user_prompt := st.chat_input("Ask code, queries, or ideas..."):
         ]
 
         payload = {
-            "messages": formatted_messages,
-            "temperature": 0.6,
-            "top_p": 0.95,
-            "max_tokens": 1536,
-            "presence_penalty": 0.0,
-            "frequency_penalty": 0.0,
-            "repeat_penalty": 1.1,
-            "stop": ["<｜end of sentence｜>", "<|im_end|>", "<|endoftext|>"],
-            "stream": True
-        }
-        try:
-            response = requests.post(
-                url=BACKEND_URL,
-                json=payload,
-                stream=True,
-                timeout=120
+    "model": "qwen2.5-coder-7b",
+    "messages": formatted_messages,
+    "temperature": 0.7,
+    "max_tokens": 1024,
+    "stop": ["<|im_end|>", "<|endoftext|>"],
+    "stream": True
+}
             )
 
             if response.status_code == 200:
