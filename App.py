@@ -106,7 +106,7 @@ st.markdown("""
 
 # --- BACKEND ENDPOINT CONFIGURATION ---
 # llama-server का OpenAI-compatible endpoint
-BACKEND_URL = "https://hear-previews-helping-enhance.trycloudflare.com/v1/chat/completions"
+BACKEND_URL = "https://rachel-accommodate-hawaiian-penn.trycloudflare.com/v1/chat/completions"
 
 # --- SESSION STATE INITIALIZATION ---
 if "messages" not in st.session_state:
