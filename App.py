@@ -228,13 +228,23 @@ if prompt := st.chat_input("Ask code, queries, or ideas..."):
             }
         }
 
-        try:
-            response = requests.post(
-                url = "https://rachel-accommodate-hawaiian-penn.trycloudflare.com/api/chat",
-                json=payload,
-                stream=True,
-                timeout=90
-            )
+        
+url = "https://rachel-accommodate-hawaiian-penn.trycloudflare.com/v1/chat/completions"
+
+
+payload = {
+    "messages": st.session_state.messages,
+    "temperature": 0.7,
+    "stream": True
+}
+
+try:
+    response = requests.post(
+        url=url,
+        json=payload,
+        stream=True,
+        timeout=90
+    )
 
             if response.status_code == 200:
                 for line in response.iter_lines():
