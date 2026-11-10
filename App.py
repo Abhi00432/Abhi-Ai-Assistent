@@ -222,7 +222,7 @@ if prompt := st.chat_input("Ask code, queries, or ideas..."):
             "stream": True,
             "options": {
                 "num_gpu": 99,
-                "num_ctx": 1536,
+                "num_ctx": 1024,
                 "low_vram": True,
                 "num_thread": 4
             }
