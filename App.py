@@ -164,8 +164,8 @@ if user_prompt := st.chat_input("Ask code, queries, or ideas..."):
         payload = {
     "model": "qwen2.5-coder-7b",
     "messages": formatted_messages,
-    "temperature": 0.7,
-    "max_tokens": 1024,
+    "temperature": 0.6,
+    "max_tokens": 1536, 
     "stop": ["<|im_end|>", "<|endoftext|>"],
     "stream": True
 }
@@ -174,7 +174,7 @@ if user_prompt := st.chat_input("Ask code, queries, or ideas..."):
                 url=BACKEND_URL,
                 json=payload,
                 stream=True,
-                timeout=120
+                timeout=300
             )
 
             if response.status_code == 200:
