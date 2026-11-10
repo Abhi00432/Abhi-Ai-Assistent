@@ -169,6 +169,12 @@ if user_prompt := st.chat_input("Ask code, queries, or ideas..."):
     "stop": ["<|im_end|>", "<|endoftext|>"],
     "stream": True
 }
+        try:
+            response = requests.post(
+                url=BACKEND_URL,
+                json=payload,
+                stream=True,
+                timeout=120
             )
 
             if response.status_code == 200:
