@@ -116,7 +116,7 @@ if "chat_title" not in st.session_state:
 
 # --- SIDEBAR CONTROLS ---
 with st.sidebar:
-    st.markdown('<div class="rgb-title" style="font-size: 1.6rem;">⚡ Workspace</div>', unsafe_allow_html=True)
+    st.markdown('<div class="rgb-title" style="font-size: 1.6rem;"> Ai Assistant </div>', unsafe_allow_html=True)
     
     if st.button("➕ New Chat", use_container_width=True):
         st.session_state.messages = []
