@@ -105,8 +105,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- BACKEND ENDPOINT CONFIGURATION ---
-# llama-server का OpenAI-compatible endpoint
-BACKEND_URL = "https://rachel-accommodate-hawaiian-penn.trycloudflare.com/v1/chat/completions"
+BACKEND_URL = "https://hear-previews-helping-enhance.trycloudflare.com/v1/chat/completions"
 
 # --- SESSION STATE INITIALIZATION ---
 if "messages" not in st.session_state:
@@ -133,10 +132,6 @@ with st.sidebar:
     if st.button("🧹 Clear Messages", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
-        
-    st.markdown("---")
-    st.caption("🚀 **Engine:** Llama.cpp Vulkan (Quadro M1000M GPU)")
-    st.caption("⚡ **Model:** Qwen 2.5 1.5B Instruct")
 
 # --- MAIN CHAT INTERFACE ---
 st.markdown(f'<div class="rgb-title">⚡ {st.session_state.chat_title}</div>', unsafe_allow_html=True)
