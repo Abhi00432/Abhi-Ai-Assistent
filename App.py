@@ -163,13 +163,20 @@ if user_prompt := st.chat_input("Ask code, queries, or ideas..."):
 
         payload = {
             "messages": formatted_messages,
-            "temperature": 0.6,
-            "top_p": 0.85,
+            "temperature": 0.4,              # रैंडमनेस कम करने के लिए (लूप से बचाता है)
+            "top_p": 0.8,
             "max_tokens": 1024,
-            "presence_penalty": 0.2,
-            "frequency_penalty": 0.3,
-            "repeat_penalty": 1.15,
-            "stop": ["<|im_end|>", "<|endoftext|>", "<|im_start|>"],
+            "presence_penalty": 0.5,         # नए विषय पर जाने के लिए मजबूर करेगा
+            "frequency_penalty": 0.8,        # दोहराए गए शब्दों पर भारी पेनल्टी लगाएगा
+            "repeat_penalty": 1.25,          # लूपिंग को पूरी तरह ब्लॉक करेगा
+            "repeat_last_n": 256,            # पिछले 256 टोकन्स पर नज़र रखेगा
+            "stop": [
+                "<|im_end|>", 
+                "<|endoftext|>", 
+                "<|im_start|>",
+                "CONSTRAINTS:",              # अगर यह प्रॉम्प्ट को दोबारा छापने की कोशिश करे तो तुरंत कट कर देगा
+                "\n\nCONSTRAINTS"
+            ],
             "stream": True
         }
 
